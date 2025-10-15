@@ -169,6 +169,26 @@ export default function Generate() {
         const issueDateFormatted = formatExcelDate(row['Date of Issue']);
         // Prefer QRCode column if present and non-empty
         const qrDataBase = row.QRCode && String(row.QRCode).trim().length > 0 ? String(row.QRCode) : qrCodeData;
+        
+        // Resolve Grade from potential variants in the sheet (handles typos/case/trailing spaces)
+        const gradeVal = ((): string => {
+          const candidates = [
+            row.Grade,
+            row['GRADE'],
+            row['grade'],
+            row['Grade '],
+            row[' Result'],
+            row['Result'],
+            row['RESULT']
+          ];
+          for (const val of candidates) {
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+              return String(val).trim();
+            }
+          }
+          return '';
+        })();
+        
         const qrData = includeQRCode ? 
           qrDataBase
             .replace('{CertificateNo}', row.CertificateNo || '')
@@ -185,7 +205,7 @@ export default function Generate() {
             .replace('{State}', row.State || '')
             .replace('{AssessmentPartner}', row['Assessment Partner'] || '')
             .replace('{IssuePlace}', row['Place of Issue'] || '')
-            .replace('{Grade}', row.Grade || '') : '';
+            .replace('{Grade}', gradeVal) : '';
 
         const filename = filenamePattern
           .replace('{CertificateNo}', row.CertificateNo || '')
@@ -241,7 +261,7 @@ export default function Generate() {
             DOB: dobFormatted || '',
             CertificateNo: row.CertificateNo || '',
             IssueDate: issueDateFormatted || new Date().toISOString().split('T')[0],
-            Grade: row.Grade || '',
+            Grade: gradeVal,
             AadharNo: row.AadharNo || '',
             EnrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
             SonOrDaughterOf: row.SonOrDaughterOf || '',
@@ -297,7 +317,8 @@ export default function Generate() {
           issue_place: row['Place of Issue'] || '', // Fixed: Excel has "Place of Issue"
           qr_code_data: qrData,
           qr_code_url: qrData ? `data:image/svg+xml;base64,${btoa(qrData)}` : undefined,
-          status: 'ready'
+          status: 'ready',
+          grade: gradeVal
         });
       }
 

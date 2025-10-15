@@ -220,6 +220,15 @@ export const certificateService = {
     
     if (error) throw error
     return data
+  },
+
+  async deleteByGenerationJob(jobId: string): Promise<void> {
+    const { error } = await supabase
+      .from('certificates')
+      .delete()
+      .eq('generation_job_id', jobId)
+    
+    if (error) throw error
   }
 }
 

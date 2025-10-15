@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Lock, Package, Eye, CheckCircle, FileText, QrCode } from "lucide-react";
+import { Download, Lock, Package, Eye, CheckCircle, FileText, QrCode, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generationJobService, certificateService, templateService } from "@/lib/supabaseService";
 import { GenerationJob, Certificate } from "@/lib/supabase";
@@ -149,34 +149,50 @@ export default function Results() {
         description: `Preparing ${result.successful_certificates} certificates for download`,
       });
 
+      if (!result.template_id) throw new Error('No template reference on generation job');
+      const template = await templateService.getById(result.template_id);
+      if (!template?.file_url) throw new Error('Template not found or missing file URL');
+
+      const templateResp = await fetch(template.file_url);
+      if (!templateResp.ok) throw new Error(`Failed to fetch template: ${templateResp.status}`);
+      const templateArrayBuffer = await templateResp.arrayBuffer();
+
       const zip = new JSZip();
-      const format = result.output_format as 'pdf' | 'docx';
       for (const cert of certificates) {
-        const data: CertificateData = {
-          participantName: cert.participantName,
-          certificateNo: cert.certificateNo,
-          issueDate: cert.generatedAt.toLocaleDateString(),
-          aadhar: '',
-          dob: '',
-          sonOrDaughterOf: '',
-          jobRole: '',
-          duration: '',
-          trainingCenter: '',
-          district: '',
-          state: '',
-          assessmentPartner: '',
-          enrollmentNo: '',
-          issuePlace: '',
-          grade: '',
-          qrCodeData: cert.qrCodeData
-        };
-        // For now, skip individual certificate regeneration since we need the template
-        // TODO: Store template reference in certificate records for regeneration
-        console.warn('Individual certificate regeneration not supported without template access');
-        continue;
+        const qrDataUrl = cert.qrCodeData
+          ? await CertificateGenerator.generateQRCodeAsBase64(cert.qrCodeData)
+          : undefined;
+
+        const mappedData = {
+          Name: cert.participantName,
+          CertificateNo: cert.certificateNo,
+          IssueDate: cert.generatedAt.toLocaleDateString(),
+          Grade: cert.grade || '',
+          AadharNo: cert.aadhar || '',
+          EnrollmentNo: cert.enrollmentNo || '',
+          SonOrDaughterOf: cert.sonOrDaughterOf || '',
+          JobRole: cert.jobRole || '',
+          Duration: cert.duration || '',
+          TrainingCenter: cert.trainingCenter || '',
+          District: cert.district || '',
+          State: cert.state || '',
+          AssessmentPartner: cert.assessmentPartner || '',
+          IssuePlace: cert.issuePlace || '',
+          DOB: cert.dob || '',
+          QRCode: cert.qrCodeData
+        } as Record<string, any>;
+
+        const pdfBlob = await CertificateGenerator.generatePDFFromTemplate(
+          templateArrayBuffer,
+          mappedData,
+          qrDataUrl
+        );
+        const fileBuffer = await pdfBlob.arrayBuffer();
+        zip.file(cert.filename, fileBuffer);
       }
+
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `certificates_${result.id}.zip`);
+      saveAs(content, `${(result as any).datasets?.name || 'certificates'}_${result.id}.zip`);
 
       toast({
         title: "Download completed!",
@@ -188,6 +204,30 @@ export default function Results() {
         description: "Failed to download certificates",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleDeleteGeneration = async (resultId: string) => {
+    const result = generationResults.find(r => r.id === resultId);
+    if (!result) return;
+
+    try {
+      toast({ title: 'Deleting...', description: 'Removing certificates and job' });
+      // Delete certificates first
+      await certificateService.deleteByGenerationJob(result.id);
+      // Delete the generation job
+      await generationJobService.delete(result.id);
+
+      // Update local state
+      setGenerationResults(prev => prev.filter(r => r.id !== result.id));
+      if (selectedResult === result.id) {
+        setSelectedResult(null);
+        setCertificates([]);
+      }
+
+      toast({ title: 'Deleted', description: 'Generation removed successfully' });
+    } catch (error) {
+      toast({ title: 'Delete failed', description: 'Unable to delete generation', variant: 'destructive' });
     }
   };
 
@@ -387,6 +427,17 @@ export default function Results() {
                     >
                       <Package className="h-4 w-4 mr-2" />
                       Download ZIP
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGeneration(result.id);
+                      }}
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete
                     </Button>
                     {result.status === 'completed' && (
                       <Button

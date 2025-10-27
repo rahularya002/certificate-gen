@@ -163,10 +163,19 @@ export default function Results() {
           ? await CertificateGenerator.generateQRCodeAsBase64(cert.qrCodeData)
           : undefined;
 
+        // Helper to format date
+        const formatDate = (date: Date): string => {
+          const d = String(date.getDate()).padStart(2, '0');
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const m = monthNames[date.getMonth()];
+          const y = date.getFullYear();
+          return `${d}/${m}/${y}`;
+        };
+
         const mappedData = {
           Name: cert.participantName,
           CertificateNo: cert.certificateNo,
-          IssueDate: cert.generatedAt.toLocaleDateString(),
+          IssueDate: formatDate(cert.generatedAt),
           Grade: cert.grade || '',
           AadharNo: cert.aadhar || '',
           EnrollmentNo: cert.enrollmentNo || '',
@@ -295,11 +304,32 @@ export default function Results() {
             if (typeof val === 'number') {
               const date = new Date((val - 25569) * 86400 * 1000);
               const d = String(date.getDate()).padStart(2, '0');
-              const m = String(date.getMonth() + 1).padStart(2, '0');
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const m = monthNames[date.getMonth()];
               const y = date.getFullYear();
               return `${d}/${m}/${y}`;
             }
+            // If it's already a date string, try to parse it
+            if (typeof val === 'string') {
+              const date = new Date(val);
+              if (!isNaN(date.getTime())) {
+                const d = String(date.getDate()).padStart(2, '0');
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const m = monthNames[date.getMonth()];
+                const y = date.getFullYear();
+                return `${d}/${m}/${y}`;
+              }
+            }
             return String(val);
+          };
+
+          // Helper to format Date objects
+          const formatDate = (date: Date): string => {
+            const d = String(date.getDate()).padStart(2, '0');
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const m = monthNames[date.getMonth()];
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
           };
 
           const pdfBlob = await CertificateGenerator.generatePDFFromTemplate(
@@ -307,7 +337,7 @@ export default function Results() {
             {
               Name: cert.participantName,
               CertificateNo: cert.certificateNo,
-              IssueDate: normalizeDate(cert.generatedAt.toLocaleDateString()),
+              IssueDate: formatDate(cert.generatedAt),
               Grade: cert.grade || '',
               AadharNo: cert.aadhar || '',
               EnrollmentNo: cert.enrollmentNo || '',
@@ -412,7 +442,14 @@ export default function Results() {
                         </span>
                       )}
                       <span className="text-muted-foreground">
-                        Generated {new Date(result.created_at).toLocaleDateString()}
+                        Generated {(() => {
+                          const d = new Date(result.created_at);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const month = monthNames[d.getMonth()];
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
                       </span>
                     </div>
                   </div>

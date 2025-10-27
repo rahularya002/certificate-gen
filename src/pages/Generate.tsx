@@ -151,13 +151,14 @@ export default function Generate() {
         console.log('[Generate] First row of dataset:', selectedDs.data[0]);
         console.log('[Generate] All column names in dataset:', selectedDs.columns);
       }
-      // Helper to format Excel serial dates to dd/MM/yyyy
+      // Helper to format Excel serial dates to dd/Mon/yyyy
       const formatExcelDate = (val: any): string => {
         if (val === undefined || val === null || val === '') return '';
         if (typeof val === 'number') {
           const date = new Date((val - 25569) * 86400 * 1000);
           const d = String(date.getDate()).padStart(2, '0');
-          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const m = monthNames[date.getMonth()];
           const y = date.getFullYear();
           return `${d}/${m}/${y}`;
         }
@@ -419,7 +420,14 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{dataset.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {dataset.total_rows} participants • Uploaded {new Date(dataset.created_at).toLocaleDateString()}
+                        {dataset.total_rows} participants • Uploaded {(() => {
+                          const d = new Date(dataset.created_at);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const month = monthNames[d.getMonth()];
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -467,7 +475,14 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{template.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {template.placeholders.length} placeholders • Uploaded {new Date(template.created_at).toLocaleDateString()}
+                        {template.placeholders.length} placeholders • Uploaded {(() => {
+                          const d = new Date(template.created_at);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const month = monthNames[d.getMonth()];
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
                       </div>
                     </div>
                   </div>

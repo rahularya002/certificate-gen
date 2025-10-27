@@ -266,7 +266,14 @@ export default function History() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{record.createdAt.toLocaleDateString()}</div>
+                        <div>{(() => {
+                          const d = record.createdAt;
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const month = monthNames[d.getMonth()];
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}</div>
                         <div className="text-muted-foreground">
                           {record.createdAt.toLocaleTimeString()}
                         </div>

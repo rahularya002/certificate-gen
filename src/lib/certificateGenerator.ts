@@ -8,6 +8,7 @@ import mammoth from 'mammoth';
 import html2canvas from 'html2canvas';
 import { pdf } from '@react-pdf/renderer';
 import ReactPdfCertificate from '@/lib/reactPdfRenderer';
+import JSZip from 'jszip';
 
 export interface CertificateData {
   participantName: string;
@@ -59,15 +60,171 @@ export class CertificateGenerator {
       const docxBlob = renderDocxTemplate({ templateArrayBuffer, data: mappedData, qrCodeDataUrl: qrDataUrl });
       console.log('[CertificateGenerator] DOCX template rendered, blob size:', docxBlob.size);
       
-      // For now, return the DOCX blob as PDF (browser will handle it)
-      // TODO: Implement proper DOCX→PDF conversion that preserves formatting
-      console.log('[CertificateGenerator] Returning DOCX as PDF (formatting preserved)');
+      // For now, return the DOCX blob (PDF conversion will be done separately)
+      console.log('[CertificateGenerator] Returning DOCX blob');
       return docxBlob;
       
     } catch (error) {
       console.error('[CertificateGenerator] Error using template:', error);
       throw new Error(`Template processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  static async convertToPDF(blob: Blob, filename: string): Promise<Blob> {
+    try {
+      console.log('[CertificateGenerator] Converting to PDF...');
+      const pdfBlob = await this.convertDocxToPdf(blob);
+      console.log('[CertificateGenerator] PDF conversion completed');
+      return pdfBlob;
+    } catch (pdfError) {
+      console.error('[CertificateGenerator] PDF conversion failed:', pdfError);
+      throw new Error('Failed to convert certificate to PDF. Please try downloading the DOCX version.');
+    }
+  }
+
+  static async convertDocxToPdf(docxBlob: Blob): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          
+          console.log('[convertDocxToPdf] Converting DOCX to HTML...');
+          
+          // Convert DOCX to HTML using mammoth - use minimal options to avoid issues
+          let result;
+          try {
+            result = await mammoth.convertToHtml({ arrayBuffer }, {
+              ignoreEmptyParagraphs: true,
+            });
+          } catch (mammothError: any) {
+            console.error('[convertDocxToPdf] Mammoth conversion error:', mammothError);
+            // If mammoth fails, it means the DOCX has unsupported features
+            throw new Error('unsupported_features');
+          }
+          
+          let html = result.value;
+          
+          // Add basic styling
+          html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8">
+              <style>
+                body { 
+                  font-family: 'Arial', 'Times New Roman', sans-serif;
+                  margin: 20mm;
+                  padding: 0;
+                  color: #000;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                  margin: 10px 0 5px 0;
+                  font-weight: bold;
+                }
+                p {
+                  margin: 5px 0;
+                }
+                table {
+                  border-collapse: collapse;
+                  width: 100%;
+                  margin: 10px 0;
+                }
+                td, th {
+                  border: 1px solid #ddd;
+                  padding: 8px;
+                }
+                img {
+                  max-width: 100%;
+                  height: auto;
+                }
+              </style>
+            </head>
+            <body>
+              ${html}
+            </body>
+            </html>
+          `;
+          
+          // Create a temporary div to render the HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.width = '210mm';
+          tempDiv.style.backgroundColor = 'white';
+          tempDiv.innerHTML = html;
+          document.body.appendChild(tempDiv);
+          
+          // Wait for images to load
+          const images = tempDiv.getElementsByTagName('img');
+          if (images.length > 0) {
+            const imagePromises = Array.from(images).map(img => {
+              return new Promise<void>((imgResolve) => {
+                if (img.complete) {
+                  imgResolve();
+                } else {
+                  img.onload = () => imgResolve();
+                  img.onerror = () => imgResolve();
+                }
+              });
+            });
+            await Promise.all(imagePromises);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          console.log('[convertDocxToPdf] Converting HTML to PDF...');
+          
+          // Convert HTML to canvas to PDF
+          const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            windowWidth: 210 * 3.779527559,
+          });
+          
+          document.body.removeChild(tempDiv);
+          
+          // Convert canvas to PDF
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 210;
+          const pageHeight = 297;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          let heightLeft = imgHeight;
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+          
+          while (heightLeft > 0) {
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, -heightLeft, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+          }
+          
+          const pdfBlob = pdf.output('blob');
+          console.log('[convertDocxToPdf] PDF conversion completed');
+          resolve(pdfBlob);
+        } catch (error) {
+          console.error('[convertDocxToPdf] Error:', error);
+          reject(error);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('[convertDocxToPdf] FileReader error:', error);
+        reject(error);
+      };
+      
+      reader.readAsArrayBuffer(docxBlob);
+    });
   }
 
   static async generateDOCX(data: CertificateData, filename: string): Promise<Blob> {

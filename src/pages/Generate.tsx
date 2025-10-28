@@ -13,6 +13,7 @@ import { datasetService, templateService, generationJobService, certificateServi
 import { Dataset, Template, GenerationJob, Certificate } from "@/lib/supabase";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import { CertificateGenerator, CertificateData } from "@/lib/certificateGenerator";
+import { formatDateShortMonth } from "@/lib/utils";
 import { renderDocxTemplate } from "@/lib/templateDocxRenderer";
 
 interface LocalGenerationJob {
@@ -151,18 +152,15 @@ export default function Generate() {
         console.log('[Generate] First row of dataset:', selectedDs.data[0]);
         console.log('[Generate] All column names in dataset:', selectedDs.columns);
       }
-      // Helper to format Excel serial dates to dd/Mon/yyyy
+  // Helper to format Excel serial dates to dd/Mon/yyyy
       const formatExcelDate = (val: any): string => {
         if (val === undefined || val === null || val === '') return '';
         if (typeof val === 'number') {
           const date = new Date((val - 25569) * 86400 * 1000);
-          const d = String(date.getDate()).padStart(2, '0');
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const m = monthNames[date.getMonth()];
-          const y = date.getFullYear();
-          return `${d}/${m}/${y}`;
+      return formatDateShortMonth(date);
         }
-        return String(val);
+    const d = new Date(val);
+    return Number.isNaN(d.getTime()) ? String(val) : formatDateShortMonth(d);
       };
 
       for (const row of selectedDs.data) {
@@ -194,7 +192,7 @@ export default function Generate() {
           qrDataBase
             .replace('{CertificateNo}', row.CertificateNo || '')
             .replace('{Name}', row.Name || '')
-            .replace('{IssueDate}', issueDateFormatted || new Date().toISOString().split('T')[0])
+            .replace('{IssueDate}', issueDateFormatted || formatDateShortMonth(new Date()))
             .replace('{AadharNo}', row.AadharNo || '')
             .replace('{EnrollmentNo}', row.Enrollment || '')
             .replace('{DOB}', dobFormatted || '')
@@ -211,7 +209,7 @@ export default function Generate() {
         const filename = filenamePattern
           .replace('{CertificateNo}', row.CertificateNo || '')
           .replace('{Name}', row.Name || '')
-          .replace('{IssueDate}', issueDateFormatted || new Date().toISOString().split('T')[0])
+          .replace('{IssueDate}', issueDateFormatted || formatDateShortMonth(new Date()))
           .replace('{AadharNo}', row.AadharNo || '')
           .replace('{EnrollmentNo}', row.Enrollment || '') // Fixed: Excel has "Enrollment"
           .replace('{DOB}', dobFormatted || '')
@@ -228,7 +226,7 @@ export default function Generate() {
         const certificateData: CertificateData = {
           participantName: row.Name || '',
           certificateNo: row.CertificateNo || '',
-          issueDate: issueDateFormatted || new Date().toISOString().split('T')[0],
+          issueDate: issueDateFormatted || formatDateShortMonth(new Date()),
           aadhar: row.AadharNo || '',
           enrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
           dob: dobFormatted || '',
@@ -261,7 +259,7 @@ export default function Generate() {
             Name: row.Name || '',
             DOB: dobFormatted || '',
             CertificateNo: row.CertificateNo || '',
-            IssueDate: issueDateFormatted || new Date().toISOString().split('T')[0],
+            IssueDate: issueDateFormatted || formatDateShortMonth(new Date()),
             Grade: gradeVal,
             AadharNo: row.AadharNo || '',
             EnrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
@@ -420,14 +418,7 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{dataset.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {dataset.total_rows} participants • Uploaded {(() => {
-                          const d = new Date(dataset.created_at);
-                          const day = String(d.getDate()).padStart(2, '0');
-                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                          const month = monthNames[d.getMonth()];
-                          const year = d.getFullYear();
-                          return `${day}/${month}/${year}`;
-                        })()}
+                        {dataset.total_rows} participants • Uploaded {formatDateShortMonth(dataset.created_at as any)}
                       </div>
                     </div>
                   </div>
@@ -475,14 +466,7 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{template.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {template.placeholders.length} placeholders • Uploaded {(() => {
-                          const d = new Date(template.created_at);
-                          const day = String(d.getDate()).padStart(2, '0');
-                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                          const month = monthNames[d.getMonth()];
-                          const year = d.getFullYear();
-                          return `${day}/${month}/${year}`;
-                        })()}
+                        {template.placeholders.length} placeholders • Uploaded {formatDateShortMonth(template.created_at as any)}
                       </div>
                     </div>
                   </div>

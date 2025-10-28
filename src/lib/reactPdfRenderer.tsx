@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateShortMonth } from '@/lib/utils';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 // Create styles for landscape certificate
@@ -116,29 +117,15 @@ interface ReactPdfCertificateProps {
 }
 
 export const ReactPdfCertificate: React.FC<ReactPdfCertificateProps> = ({ data }) => {
-  // Format DOB if it's a number (Excel serial date)
+  // Format DOB consistently as dd/Mon/yyyy (supports Excel serials and strings)
   const formatDOB = (dob: string | number) => {
+    if (dob === undefined || dob === null || dob === '') return '';
     if (typeof dob === 'number') {
-      // Excel serial date to readable date
       const date = new Date((dob - 25569) * 86400 * 1000);
-      const d = String(date.getDate()).padStart(2, '0');
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const m = monthNames[date.getMonth()];
-      const y = date.getFullYear();
-      return `${d}/${m}/${y}`;
+      return formatDateShortMonth(date);
     }
-    // If it's a string date, try to parse and format it
-    if (typeof dob === 'string') {
-      const date = new Date(dob);
-      if (!isNaN(date.getTime())) {
-        const d = String(date.getDate()).padStart(2, '0');
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const m = monthNames[date.getMonth()];
-        const y = date.getFullYear();
-        return `${d}/${m}/${y}`;
-      }
-    }
-    return dob;
+    const d = new Date(dob);
+    return Number.isNaN(d.getTime()) ? String(dob) : formatDateShortMonth(d);
   };
 
   // Create details array for two-column layout

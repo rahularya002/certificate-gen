@@ -11,6 +11,7 @@ import QRCodeGenerator from "@/components/QRCodeGenerator";
 import { CertificateGenerator, CertificateData } from "@/lib/certificateGenerator";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { formatDateShortMonth } from "@/lib/utils";
 
 interface LocalCertificate {
   id: string;
@@ -163,19 +164,10 @@ export default function Results() {
           ? await CertificateGenerator.generateQRCodeAsBase64(cert.qrCodeData)
           : undefined;
 
-        // Helper to format date
-        const formatDate = (date: Date): string => {
-          const d = String(date.getDate()).padStart(2, '0');
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const m = monthNames[date.getMonth()];
-          const y = date.getFullYear();
-          return `${d}/${m}/${y}`;
-        };
-
         const mappedData = {
           Name: cert.participantName,
           CertificateNo: cert.certificateNo,
-          IssueDate: formatDate(cert.generatedAt),
+          IssueDate: formatDateShortMonth(cert.generatedAt),
           Grade: cert.grade || '',
           AadharNo: cert.aadhar || '',
           EnrollmentNo: cert.enrollmentNo || '',
@@ -303,33 +295,10 @@ export default function Results() {
             if (val === undefined || val === null || val === '') return '';
             if (typeof val === 'number') {
               const date = new Date((val - 25569) * 86400 * 1000);
-              const d = String(date.getDate()).padStart(2, '0');
-              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const m = monthNames[date.getMonth()];
-              const y = date.getFullYear();
-              return `${d}/${m}/${y}`;
+              return formatDateShortMonth(date);
             }
-            // If it's already a date string, try to parse it
-            if (typeof val === 'string') {
-              const date = new Date(val);
-              if (!isNaN(date.getTime())) {
-                const d = String(date.getDate()).padStart(2, '0');
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const m = monthNames[date.getMonth()];
-                const y = date.getFullYear();
-                return `${d}/${m}/${y}`;
-              }
-            }
-            return String(val);
-          };
-
-          // Helper to format Date objects
-          const formatDate = (date: Date): string => {
-            const d = String(date.getDate()).padStart(2, '0');
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const m = monthNames[date.getMonth()];
-            const y = date.getFullYear();
-            return `${d}/${m}/${y}`;
+            const d = new Date(val);
+            return Number.isNaN(d.getTime()) ? String(val) : formatDateShortMonth(d);
           };
 
           const pdfBlob = await CertificateGenerator.generatePDFFromTemplate(
@@ -337,7 +306,7 @@ export default function Results() {
             {
               Name: cert.participantName,
               CertificateNo: cert.certificateNo,
-              IssueDate: formatDate(cert.generatedAt),
+              IssueDate: normalizeDate(cert.generatedAt),
               Grade: cert.grade || '',
               AadharNo: cert.aadhar || '',
               EnrollmentNo: cert.enrollmentNo || '',
@@ -442,14 +411,7 @@ export default function Results() {
                         </span>
                       )}
                       <span className="text-muted-foreground">
-                        Generated {(() => {
-                          const d = new Date(result.created_at);
-                          const day = String(d.getDate()).padStart(2, '0');
-                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                          const month = monthNames[d.getMonth()];
-                          const year = d.getFullYear();
-                          return `${day}/${month}/${year}`;
-                        })()}
+                        Generated {formatDateShortMonth(result.created_at as any)}
                       </span>
                     </div>
                   </div>
@@ -563,7 +525,7 @@ export default function Results() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {cert.generatedAt.toLocaleString()}
+                        {formatDateShortMonth(cert.generatedAt)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={cert.status === 'ready' ? 'default' : 'destructive'}>

@@ -11,7 +11,6 @@ import QRCodeGenerator from "@/components/QRCodeGenerator";
 import { CertificateGenerator, CertificateData } from "@/lib/certificateGenerator";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { formatDateShortMonth } from "@/lib/utils";
 
 interface LocalCertificate {
   id: string;
@@ -159,6 +158,15 @@ export default function Results() {
       const templateArrayBuffer = await templateResp.arrayBuffer();
 
       const zip = new JSZip();
+      // Helper: format JS Date -> DD/MON/YYYY
+      const formatDateDdMonYyyy = (date: Date): string => {
+        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const d = String(date.getDate()).padStart(2, '0');
+        const mon = months[date.getMonth()];
+        const y = date.getFullYear();
+        return `${d}/${mon}/${y}`;
+      };
+
       for (const cert of certificates) {
         const qrDataUrl = cert.qrCodeData
           ? await CertificateGenerator.generateQRCodeAsBase64(cert.qrCodeData)
@@ -167,7 +175,7 @@ export default function Results() {
         const mappedData = {
           Name: cert.participantName,
           CertificateNo: cert.certificateNo,
-          IssueDate: formatDateShortMonth(cert.generatedAt),
+          IssueDate: formatDateDdMonYyyy(cert.generatedAt),
           Grade: cert.grade || '',
           AadharNo: cert.aadhar || '',
           EnrollmentNo: cert.enrollmentNo || '',
@@ -291,14 +299,21 @@ export default function Results() {
           const arrayBuffer = await resp.arrayBuffer();
           
           // Generate PDF using template with actual data from database
+          const formatDateDdMonYyyy = (date: Date): string => {
+            const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+            const d = String(date.getDate()).padStart(2, '0');
+            const mon = months[date.getMonth()];
+            const y = date.getFullYear();
+            return `${d}/${mon}/${y}`;
+          };
           const normalizeDate = (val: any): string => {
             if (val === undefined || val === null || val === '') return '';
             if (typeof val === 'number') {
               const date = new Date((val - 25569) * 86400 * 1000);
-              return formatDateShortMonth(date);
+              return formatDateDdMonYyyy(date);
             }
-            const d = new Date(val);
-            return Number.isNaN(d.getTime()) ? String(val) : formatDateShortMonth(d);
+            const parsed = new Date(String(val));
+            return isNaN(parsed.getTime()) ? String(val) : formatDateDdMonYyyy(parsed);
           };
 
           const pdfBlob = await CertificateGenerator.generatePDFFromTemplate(
@@ -411,7 +426,7 @@ export default function Results() {
                         </span>
                       )}
                       <span className="text-muted-foreground">
-                        Generated {formatDateShortMonth(result.created_at as any)}
+                        Generated {new Date(result.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -525,7 +540,7 @@ export default function Results() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {formatDateShortMonth(cert.generatedAt)}
+                        {cert.generatedAt.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge variant={cert.status === 'ready' ? 'default' : 'destructive'}>

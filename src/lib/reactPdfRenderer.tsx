@@ -1,5 +1,4 @@
 import React from 'react';
-import { formatDateShortMonth } from '@/lib/utils';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 // Create styles for landscape certificate
@@ -117,15 +116,14 @@ interface ReactPdfCertificateProps {
 }
 
 export const ReactPdfCertificate: React.FC<ReactPdfCertificateProps> = ({ data }) => {
-  // Format DOB consistently as dd/Mon/yyyy (supports Excel serials and strings)
+  // Format DOB if it's a number (Excel serial date)
   const formatDOB = (dob: string | number) => {
-    if (dob === undefined || dob === null || dob === '') return '';
     if (typeof dob === 'number') {
+      // Excel serial date to readable date
       const date = new Date((dob - 25569) * 86400 * 1000);
-      return formatDateShortMonth(date);
+      return date.toLocaleDateString();
     }
-    const d = new Date(dob);
-    return Number.isNaN(d.getTime()) ? String(dob) : formatDateShortMonth(d);
+    return dob;
   };
 
   // Create details array for two-column layout

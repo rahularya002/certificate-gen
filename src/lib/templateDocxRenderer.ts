@@ -86,12 +86,29 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
     console.log('[renderDocxTemplate] Cleaned up broken placeholders in document.xml');
   }
   
-  // Replace {{QRCode}} with an internal marker so docxtemplater doesn't consume it
+  // Replace QR placeholders with an internal marker so docxtemplater doesn't consume it
   const docXmlPathInitial = 'word/document.xml';
   const xmlFileInitial = zip.file(docXmlPathInitial);
   if (xmlFileInitial) {
     let xml = xmlFileInitial.asText();
-    xml = xml.replace(/\{\{\s*QRCode\s*\}\}/g, '[[QR_INLINE_IMG]]');
+    // Common variants
+    const qrPlaceholderPatterns: RegExp[] = [
+      /\{\{\s*QRCode\s*\}\}/g,           // {{QRCode}}
+      /\{\{\s*QR\s*\}\}/g,               // {{QR}}
+      /\{\{\s*QRCODE\s*\}\}/gi,          // {{QRCODE}}
+      /\{\{\s*QR_CODE\s*\}\}/g,          // {{QR_CODE}}
+      /\{\{\s*QR\s+Code\s*\}\}/g         // {{QR Code}}
+    ];
+    for (const pattern of qrPlaceholderPatterns) {
+      xml = xml.replace(pattern, '[[QR_INLINE_IMG]]');
+    }
+    // Extremely robust variant: placeholder split across XML runs/tags
+    // Matches {{ Q R Code }} with arbitrary XML tags in between characters/words
+    const splitQrPattern = new RegExp(
+      String.raw`\{\{(?:<[^>]+>)*\s*Q\s*(?:<[^>]+>)*R\s*(?:<[^>]+>)*[_ ]?\s*(?:<[^>]+>)*C\s*(?:<[^>]+>)*o\s*(?:<[^>]+>)*d\s*(?:<[^>]+>)*e\s*(?:<[^>]+>)*\}\}`,
+      'g'
+    );
+    xml = xml.replace(splitQrPattern, '[[QR_INLINE_IMG]]');
     zip.file(docXmlPathInitial, xml);
   }
 
@@ -101,10 +118,10 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
     delimiters: { start: '{{', end: '}}' }
   })
 
-  // Inject QRCode if a placeholder {{QRCode}} exists
+  // Ensure we don't inject the base64 URL as text; leave QR text empty if image will be injected
   const enriched = {
     ...data,
-    QRCode: qrCodeDataUrl || ''
+    QRCode: qrCodeDataUrl ? '' : (data as any).QRCode || ''
   }
 
   console.log('[renderDocxTemplate] Setting data:', Object.keys(enriched));

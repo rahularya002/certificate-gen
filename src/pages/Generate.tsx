@@ -13,7 +13,6 @@ import { datasetService, templateService, generationJobService, certificateServi
 import { Dataset, Template, GenerationJob, Certificate } from "@/lib/supabase";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import { CertificateGenerator, CertificateData } from "@/lib/certificateGenerator";
-import { formatDateShortMonth } from "@/lib/utils";
 import { renderDocxTemplate } from "@/lib/templateDocxRenderer";
 
 interface LocalGenerationJob {
@@ -152,15 +151,24 @@ export default function Generate() {
         console.log('[Generate] First row of dataset:', selectedDs.data[0]);
         console.log('[Generate] All column names in dataset:', selectedDs.columns);
       }
-  // Helper to format Excel serial dates to dd/Mon/yyyy
+      // Helper: format JS Date -> DD/MON/YYYY
+      const formatDateDdMonYyyy = (date: Date): string => {
+        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const d = String(date.getDate()).padStart(2, '0');
+        const mon = months[date.getMonth()];
+        const y = date.getFullYear();
+        return `${d}/${mon}/${y}`;
+      };
+      // Helper to format Excel serial dates to DD/MON/YYYY
       const formatExcelDate = (val: any): string => {
         if (val === undefined || val === null || val === '') return '';
         if (typeof val === 'number') {
           const date = new Date((val - 25569) * 86400 * 1000);
-      return formatDateShortMonth(date);
+          return formatDateDdMonYyyy(date);
         }
-    const d = new Date(val);
-    return Number.isNaN(d.getTime()) ? String(val) : formatDateShortMonth(d);
+        // Try to parse if string
+        const parsed = new Date(String(val));
+        return isNaN(parsed.getTime()) ? String(val) : formatDateDdMonYyyy(parsed);
       };
 
       for (const row of selectedDs.data) {
@@ -192,7 +200,7 @@ export default function Generate() {
           qrDataBase
             .replace('{CertificateNo}', row.CertificateNo || '')
             .replace('{Name}', row.Name || '')
-            .replace('{IssueDate}', issueDateFormatted || formatDateShortMonth(new Date()))
+            .replace('{IssueDate}', issueDateFormatted || formatDateDdMonYyyy(new Date()))
             .replace('{AadharNo}', row.AadharNo || '')
             .replace('{EnrollmentNo}', row.Enrollment || '')
             .replace('{DOB}', dobFormatted || '')
@@ -209,7 +217,7 @@ export default function Generate() {
         const filename = filenamePattern
           .replace('{CertificateNo}', row.CertificateNo || '')
           .replace('{Name}', row.Name || '')
-          .replace('{IssueDate}', issueDateFormatted || formatDateShortMonth(new Date()))
+          .replace('{IssueDate}', issueDateFormatted || formatDateDdMonYyyy(new Date()))
           .replace('{AadharNo}', row.AadharNo || '')
           .replace('{EnrollmentNo}', row.Enrollment || '') // Fixed: Excel has "Enrollment"
           .replace('{DOB}', dobFormatted || '')
@@ -226,7 +234,7 @@ export default function Generate() {
         const certificateData: CertificateData = {
           participantName: row.Name || '',
           certificateNo: row.CertificateNo || '',
-          issueDate: issueDateFormatted || formatDateShortMonth(new Date()),
+          issueDate: issueDateFormatted || new Date().toISOString().split('T')[0],
           aadhar: row.AadharNo || '',
           enrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
           dob: dobFormatted || '',
@@ -259,7 +267,7 @@ export default function Generate() {
             Name: row.Name || '',
             DOB: dobFormatted || '',
             CertificateNo: row.CertificateNo || '',
-            IssueDate: issueDateFormatted || formatDateShortMonth(new Date()),
+            IssueDate: issueDateFormatted || formatDateDdMonYyyy(new Date()),
             Grade: gradeVal,
             AadharNo: row.AadharNo || '',
             EnrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
@@ -418,7 +426,7 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{dataset.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {dataset.total_rows} participants • Uploaded {formatDateShortMonth(dataset.created_at as any)}
+                        {dataset.total_rows} participants • Uploaded {new Date(dataset.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -466,7 +474,7 @@ export default function Generate() {
                     <div>
                       <div className="font-medium">{template.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {template.placeholders.length} placeholders • Uploaded {formatDateShortMonth(template.created_at as any)}
+                        {template.placeholders.length} placeholders • Uploaded {new Date(template.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>

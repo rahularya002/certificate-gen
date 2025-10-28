@@ -33,8 +33,9 @@ export class CertificateGenerator {
   static async generateQRCodeAsBase64(data: string): Promise<string> {
     try {
       const qrCodeDataURL = await QRCode.toDataURL(data, {
-        width: 100,
-        margin: 1,
+        width: 300,               // clean module sizing
+        margin: 4,                // larger quiet zone reduces visual clutter
+        errorCorrectionLevel: 'L',// fewer extra modules, still scannable
         color: {
           dark: '#000000',
           light: '#FFFFFF'

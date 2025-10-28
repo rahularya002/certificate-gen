@@ -169,9 +169,9 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
         const docXmlFile = zipInternal.file(docXmlPath);
         if (docXmlFile) {
           let docXml = docXmlFile.asText();
-          // Basic 60x60mm converted to EMUs (1mm = 36000 EMU). We'll use ~25mm square.
-          const cx = 25 * 36000; // width
-          const cy = 25 * 36000; // height
+          // Default scan-friendly size: ~30mm square (1mm = 36000 EMU)
+          const cx = 30 * 36000; // width
+          const cy = 30 * 36000; // height
           const drawingXml = `
             <w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">
               <wp:extent cx="${cx}" cy="${cy}"/>

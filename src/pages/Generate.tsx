@@ -323,7 +323,8 @@ export default function Generate() {
           enrollment_no: row.Enrollment || '', // Fixed: Excel has "Enrollment"
           issue_place: row['Place of Issue'] || '', // Fixed: Excel has "Place of Issue"
           qr_code_data: qrData,
-          qr_code_url: qrData ? `data:image/svg+xml;base64,${btoa(qrData)}` : undefined,
+          // qr_code_url intentionally omitted: raw btoa() fails on non-Latin1 characters and
+          // this field is not required for generation or download flows.
           status: 'ready',
           grade: gradeVal
         });
@@ -360,9 +361,16 @@ export default function Generate() {
         details: { certificates: certificates.length }
       } as any);
     } catch (error) {
+      console.error('[Generate] Generation failed:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+          ? error
+          : 'Failed to generate certificates';
       toast({
         title: "Generation failed",
-        description: "Failed to generate certificates",
+        description: message,
         variant: "destructive"
       });
       

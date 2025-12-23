@@ -149,6 +149,41 @@ export default function Results() {
         description: `Preparing ${result.successful_certificates} certificates for download`,
       });
 
+      // Always load certificates fresh for this specific generation job,
+      // instead of relying on the current `certificates` state (which may be empty
+      // or belong to a different selected result).
+      const certsFromDb = await certificateService.getByGenerationJob(resultId);
+      const jobCertificates: LocalCertificate[] = certsFromDb.map(cert => ({
+        id: cert.id,
+        filename: cert.filename,
+        participantName: cert.participant_name,
+        certificateNo: cert.certificate_no,
+        generatedAt: new Date(cert.created_at),
+        fileSize: `${Math.round(cert.file_size / 1024)} KB`,
+        status: cert.status,
+        qrCodeData: cert.qr_code_data,
+        aadhar: cert.aadhar || '',
+        dob: cert.dob || '',
+        sonOrDaughterOf: cert.son_or_daughter_of || '',
+        jobRole: cert.job_role || '',
+        duration: cert.duration || '',
+        trainingCenter: cert.training_center || '',
+        district: cert.district || '',
+        state: cert.state || '',
+        assessmentPartner: cert.assessment_partner || '',
+        enrollmentNo: cert.enrollment_no || '',
+        issuePlace: cert.issue_place || '',
+        grade: cert.grade || ''
+      }));
+
+      if (jobCertificates.length === 0) {
+        toast({
+          title: "No certificates found",
+          description: "There are no certificates stored for this generation job yet.",
+        });
+        return;
+      }
+
       if (!result.template_id) throw new Error('No template reference on generation job');
       const template = await templateService.getById(result.template_id);
       if (!template?.file_url) throw new Error('Template not found or missing file URL');
@@ -167,7 +202,7 @@ export default function Results() {
         return `${d}/${mon}/${y}`;
       };
 
-      for (const cert of certificates) {
+      for (const cert of jobCertificates) {
         const qrDataUrl = cert.qrCodeData
           ? await CertificateGenerator.generateQRCodeAsBase64(cert.qrCodeData)
           : undefined;

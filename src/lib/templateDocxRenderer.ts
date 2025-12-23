@@ -132,10 +132,10 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
   const placeholderMatches = templateText.match(/\{\{[^}]+\}\}/g);
   console.log('[renderDocxTemplate] Found placeholders in template (after cleanup):', placeholderMatches);
   
-  doc.setData(enriched)
   try {
     console.log('[renderDocxTemplate] Rendering template...');
-    doc.render()
+    // New docxtemplater API: pass data directly to render instead of using setData
+    doc.render(enriched)
     console.log('[renderDocxTemplate] Template rendered successfully');
   } catch (e) {
     console.error('[renderDocxTemplate] Error rendering template:', e);

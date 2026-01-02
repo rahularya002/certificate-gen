@@ -96,6 +96,8 @@ interface CertificateData {
   Name: string;
   DOB: string | number;
   CertificateNo: string;
+  RegistrationNo: string;
+  Level: string;
   IssueDate: string;
   Grade: string;
   AadharNo: string;

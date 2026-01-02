@@ -34,6 +34,9 @@ interface LocalCertificate {
   enrollmentNo?: string;
   issuePlace?: string;
   grade?: string;
+  registrationNo?: string;
+  level?: string;
+  candidateId?: string;
 }
 
 export default function Results() {
@@ -124,7 +127,10 @@ export default function Results() {
           assessmentPartner: cert.assessment_partner || '',
           enrollmentNo: cert.enrollment_no || '',
           issuePlace: cert.issue_place || '',
-          grade: cert.grade || ''
+          grade: cert.grade || '',
+          registrationNo: (cert as any).registration_no || '',
+          level: (cert as any).level || '',
+          candidateId: (cert as any).candidate_id || ''
         }));
         setCertificates(localCerts);
       } catch (error) {
@@ -173,7 +179,10 @@ export default function Results() {
         assessmentPartner: cert.assessment_partner || '',
         enrollmentNo: cert.enrollment_no || '',
         issuePlace: cert.issue_place || '',
-        grade: cert.grade || ''
+        grade: cert.grade || '',
+        registrationNo: (cert as any).registration_no || '',
+        level: (cert as any).level || '',
+        candidateId: (cert as any).candidate_id || ''
       }));
 
       if (jobCertificates.length === 0) {
@@ -212,6 +221,9 @@ export default function Results() {
           CertificateNo: cert.certificateNo,
           IssueDate: formatDateDdMonYyyy(cert.generatedAt),
           Grade: cert.grade || '',
+          RegistrationNo: cert.registrationNo || '',
+          Level: cert.level || '',
+          CandidateId: cert.candidateId || '',
           AadharNo: cert.aadhar || '',
           EnrollmentNo: cert.enrollmentNo || '',
           SonOrDaughterOf: cert.sonOrDaughterOf || '',
@@ -358,6 +370,9 @@ export default function Results() {
               CertificateNo: cert.certificateNo,
               IssueDate: normalizeDate(cert.generatedAt),
               Grade: cert.grade || '',
+              RegistrationNo: cert.registrationNo || '',
+              Level: cert.level || '',
+              CandidateId: cert.candidateId || '',
               AadharNo: cert.aadhar || '',
               EnrollmentNo: cert.enrollmentNo || '',
               SonOrDaughterOf: cert.sonOrDaughterOf || '',

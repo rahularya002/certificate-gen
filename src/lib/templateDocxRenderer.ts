@@ -119,9 +119,21 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
   })
 
   // Ensure we don't inject the base64 URL as text; leave QR text empty if image will be injected
-  const enriched = {
+  const enriched: Record<string, any> = {
     ...data,
     QRCode: qrCodeDataUrl ? '' : (data as any).QRCode || ''
+  }
+
+  // Add lowercase variants for case-insensitive matching (docxtemplater is case-sensitive)
+  // This handles templates that use {{level}} vs {{Level}}
+  if (enriched.Level !== undefined) {
+    enriched.level = enriched.Level;
+  }
+  if (enriched.RegistrationNo !== undefined) {
+    enriched.registrationNo = enriched.RegistrationNo;
+  }
+  if (enriched.CandidateId !== undefined) {
+    enriched.candidateId = enriched.CandidateId;
   }
 
   console.log('[renderDocxTemplate] Setting data:', Object.keys(enriched));

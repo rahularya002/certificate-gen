@@ -13,6 +13,9 @@ import JSZip from 'jszip';
 export interface CertificateData {
   participantName: string;
   certificateNo: string;
+  registrationNo?: string;
+  level?: string;
+  candidateId?: string;
   issueDate: string;
   aadhar?: string;
   dob?: string;

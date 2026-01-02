@@ -269,6 +269,9 @@ export default function Generate() {
             CertificateNo: row.CertificateNo || '',
             IssueDate: issueDateFormatted || formatDateDdMonYyyy(new Date()),
             Grade: gradeVal,
+            RegistrationNo: row.RegistrationNo || row['Registration No'] || row['RegistrationNo'] || '',
+            Level: row.Level || row['level'] || row['LEVEL'] || '',
+            CandidateId: row.CandidateId || row['Candidate ID'] || row['CandidateId'] || row['candidate_id'] || '',
             AadharNo: row.AadharNo || '',
             EnrollmentNo: row.Enrollment || '', // Fixed: Excel has "Enrollment"
             SonOrDaughterOf: row.SonOrDaughterOf || '',
@@ -322,6 +325,9 @@ export default function Generate() {
           assessment_partner: row['Assessment Partner'] || '', // Fixed: Excel has "Assessment Partner"
           enrollment_no: row.Enrollment || '', // Fixed: Excel has "Enrollment"
           issue_place: row['Place of Issue'] || '', // Fixed: Excel has "Place of Issue"
+          registration_no: row.RegistrationNo || row['Registration No'] || row['RegistrationNo'] || '',
+          level: row.Level || row['level'] || row['LEVEL'] || '',
+          candidate_id: row.CandidateId || row['Candidate ID'] || row['CandidateId'] || row['candidate_id'] || '',
           qr_code_data: qrData,
           // qr_code_url intentionally omitted: raw btoa() fails on non-Latin1 characters and
           // this field is not required for generation or download flows.
